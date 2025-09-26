@@ -68,7 +68,8 @@ export function AudioProvider({ children }: AudioProviderProps) {
 }
 
 // Stub for useAudioPlayer hook
-export function useAudioPlayer(episode?: Episode) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function useAudioPlayer(_episode?: Episode) {
   const player = useContext(AudioPlayerContext)
   return player
 }

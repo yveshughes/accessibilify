@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { useVideo } from './VideoContext'
 import { VideoPlayerWithAnalysis } from './VideoPlayerWithAnalysis'
 
@@ -15,9 +16,15 @@ interface Issue {
 // Main video component that connects to the VideoContext
 // Displays the sample building entrance video with AI analysis
 export function ConnectedVideo() {
+  const pathname = usePathname()
   const { setCurrentTime, seekToTime, selectedAlert } = useVideo()
   const [liveIssues, setLiveIssues] = useState<Issue[]>([])
   const [videoUrl] = useState<string>('/video/enter_building.mp4')
+
+  // Hide video on demo page to avoid duplication
+  if (pathname === '/demo') {
+    return null
+  }
 
   // Update the live feed with new accessibility issues from Rekognition
   const handleAnalysisUpdate = (newIssues: Issue[]) => {

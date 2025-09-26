@@ -218,32 +218,75 @@ function analyzeAccessibilityIssues(labels: Label[], timestamp: number) {
     }
 
     // Check for stairs without handrails
-    if (name.includes('stairs') || name.includes('staircase')) {
+    if (name.includes('stairs') || name.includes('staircase') || name.includes('steps')) {
       const hasHandrail = labels.some(l =>
         l.Name?.toLowerCase().includes('handrail') ||
-        l.Name?.toLowerCase().includes('railing')
+        l.Name?.toLowerCase().includes('railing') ||
+        l.Name?.toLowerCase().includes('rail')
       )
       if (!hasHandrail) {
         issues.push({
-          type: 'warning',
+          type: 'error',
           title: 'Missing Handrail',
-          description: 'Stairs appear to lack handrail on one side. Handrails required on both sides for accessibility.',
+          description: 'Stairs detected without visible handrails. ADA requires continuous handrails on both sides of stairs.',
           timestamp,
           confidence,
+          boundingBox: label.Instances?.[0]?.BoundingBox,
           adaReference: 'ADA 505.2'
         })
       }
     }
 
-    // Check for doors
-    if (name.includes('door') || name.includes('doorway') || name.includes('entrance')) {
+    // Check for narrow pathways
+    if (name.includes('hallway') || name.includes('corridor') || name.includes('path')) {
       issues.push({
-        type: 'info',
-        title: 'Door Width Violation',
-        description: 'Doorway appears to be less than 32" clear width when open 90 degrees.',
+        type: 'warning',
+        title: 'Check Pathway Width',
+        description: 'Pathway detected - verify minimum 36" clear width for wheelchair access.',
         timestamp,
         confidence,
-        adaReference: 'ADA 404.2.3'
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 403.5'
+      })
+    }
+
+    // Check for doors
+    if (name.includes('door') || name.includes('doorway') || name.includes('entrance') || name.includes('exit')) {
+      // Check if it's a glass door (potential visibility issue)
+      const isGlass = labels.some(l => l.Name?.toLowerCase().includes('glass'))
+      if (isGlass) {
+        issues.push({
+          type: 'warning',
+          title: 'Glass Door Visibility',
+          description: 'Glass door detected - ensure contrast markings are present at eye level for visibility.',
+          timestamp,
+          confidence,
+          boundingBox: label.Instances?.[0]?.BoundingBox,
+          adaReference: 'ADA 404.1'
+        })
+      } else {
+        issues.push({
+          type: 'info',
+          title: 'Verify Door Width',
+          description: 'Door detected - verify minimum 32" clear width when open 90 degrees.',
+          timestamp,
+          confidence,
+          boundingBox: label.Instances?.[0]?.BoundingBox,
+          adaReference: 'ADA 404.2.3'
+        })
+      }
+    }
+
+    // Check for thresholds and level changes
+    if (name.includes('threshold') || name.includes('step') || name.includes('curb')) {
+      issues.push({
+        type: 'warning',
+        title: 'Level Change Detected',
+        description: 'Potential trip hazard - thresholds should not exceed 1/2" height.',
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 303'
       })
     }
 
@@ -272,14 +315,56 @@ function analyzeAccessibilityIssues(labels: Label[], timestamp: number) {
     }
 
     // Check for lighting/contrast
-    if (name.includes('dark') || name.includes('dim')) {
+    if (name.includes('dark') || name.includes('dim') || name.includes('shadow')) {
       issues.push({
-        type: 'info',
-        title: 'Contrast Issue',
-        description: 'Insufficient color contrast between door and wall. May be difficult for low-vision individuals to identify.',
+        type: 'warning',
+        title: 'Poor Lighting Conditions',
+        description: 'Area appears dimly lit. Adequate lighting is essential for safe navigation, especially for visually impaired individuals.',
         timestamp,
         confidence,
-        adaReference: 'WCAG 2.1 1.4.3'
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 206.5'
+      })
+    }
+
+    // Check for parking and access
+    if (name.includes('parking') || name.includes('car') || name.includes('vehicle')) {
+      issues.push({
+        type: 'info',
+        title: 'Parking Area',
+        description: 'Parking area detected - verify accessible parking spaces with proper width and access aisles.',
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 502'
+      })
+    }
+
+    // Check for person or people (to identify crowding)
+    if (name.includes('person') || name.includes('people') || name.includes('crowd')) {
+      const count = label.Instances?.length || 1
+      if (count > 3) {
+        issues.push({
+          type: 'info',
+          title: 'Crowded Area',
+          description: 'Multiple people detected - ensure clear paths of travel are maintained.',
+          timestamp,
+          confidence,
+          adaReference: 'ADA 403.5'
+        })
+      }
+    }
+
+    // Check for flooring and surfaces
+    if (name.includes('floor') || name.includes('carpet') || name.includes('mat') || name.includes('rug')) {
+      issues.push({
+        type: 'info',
+        title: 'Floor Surface',
+        description: 'Floor surface detected - ensure stable, firm, and slip-resistant surface.',
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 302'
       })
     }
     // Check for accessibility equipment

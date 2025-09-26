@@ -59,7 +59,7 @@ export default function RootLayout({
                 </Link>
 
                 <Link
-                  href="/demo/upload"
+                  href="/demo"
                   className="group flex h-10 w-10 items-center justify-center rounded-lg bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all"
                   aria-label="Live Demo"
                   title="Live Demo"
