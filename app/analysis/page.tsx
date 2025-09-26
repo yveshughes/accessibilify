@@ -12,10 +12,10 @@ export default function AnalysisPage() {
       setCurrentTime(event.detail.currentTime)
     }
 
-    window.addEventListener('videoTimeUpdate' as any, handleVideoTimeUpdate)
+    window.addEventListener('videoTimeUpdate', handleVideoTimeUpdate as EventListener)
 
     return () => {
-      window.removeEventListener('videoTimeUpdate' as any, handleVideoTimeUpdate)
+      window.removeEventListener('videoTimeUpdate', handleVideoTimeUpdate as EventListener)
     }
   }, [])
 

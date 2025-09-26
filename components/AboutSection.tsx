@@ -6,7 +6,7 @@ import clsx from 'clsx'
 import { TinyWaveFormIcon } from '@/components/TinyWaveFormIcon'
 
 export function AboutSection(props: React.ComponentPropsWithoutRef<'section'>) {
-  let [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   return (
     <section {...props}>

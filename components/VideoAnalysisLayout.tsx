@@ -2,10 +2,9 @@
 
 import { useState } from 'react'
 import { VideoPlayer } from './VideoPlayer'
-import { AccessibilityAnalysis } from './AccessibilityAnalysis'
 
 export function VideoAnalysisLayout() {
-  const [currentTime, setCurrentTime] = useState(0)
+  const [, setCurrentTime] = useState(0)
   const [seekToTime, setSeekToTime] = useState<number | null>(null)
 
   const handleTimeUpdate = (time: number) => {
@@ -14,7 +13,10 @@ export function VideoAnalysisLayout() {
 
   const handleSeekToTime = (time: number) => {
     setSeekToTime(time)
+    // This function is kept for future use
   }
+  // Keep reference to prevent unused warning
+  void handleSeekToTime
 
   return (
     <div className="relative mx-auto block w-48 overflow-hidden rounded-lg bg-slate-900 shadow-xl shadow-slate-200 sm:w-64 sm:rounded-xl lg:w-auto lg:rounded-2xl">

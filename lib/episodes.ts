@@ -14,7 +14,7 @@ export interface Episode {
 }
 
 export async function getAllEpisodes() {
-  let FeedSchema = object({
+  const FeedSchema = object({
     items: array(
       object({
         id: number(),
@@ -32,12 +32,12 @@ export async function getAllEpisodes() {
     ),
   })
 
-  let feed = (await parseFeed(
+  const feed = (await parseFeed(
     'https://their-side-feed.vercel.app/api/feed',
   )) as unknown
-  let items = parse(FeedSchema, feed).items
+  const items = parse(FeedSchema, feed).items
 
-  let episodes: Array<Episode> = items.map(
+  const episodes: Array<Episode> = items.map(
     ({ id, title, description, content, enclosures, published }) => ({
       id,
       title: `${id}: ${title}`,
