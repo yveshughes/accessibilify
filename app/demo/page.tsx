@@ -6,7 +6,7 @@ export default function DemoPage() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold text-slate-900 mb-4">Live Demo</h1>
         <p className="text-lg text-slate-600 mb-8">
-          Experience Accessibilify's real-time ADA compliance detection powered by AWS Rekognition.
+          Experience Accessibilify&apos;s real-time ADA compliance detection powered by AWS Rekognition.
         </p>
 
         <div className="bg-slate-50 rounded-lg p-8 mb-8">

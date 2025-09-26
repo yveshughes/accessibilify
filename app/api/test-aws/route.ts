@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
-import { RekognitionClient, DetectLabelsCommand } from '@aws-sdk/client-rekognition'
+import { RekognitionClient } from '@aws-sdk/client-rekognition'
 import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3'
 
 // Initialize AWS clients
-const rekognitionClient = new RekognitionClient({
+// Rekognition client ready for future use
+new RekognitionClient({
   region: process.env.AWS_REGION || 'us-east-1',
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
@@ -25,9 +26,7 @@ export async function GET() {
     const s3Command = new ListBucketsCommand({})
     const s3Response = await s3Client.send(s3Command)
 
-    // Test Rekognition by detecting labels in a test image
-    // For now, we'll just verify the client initializes properly
-    const testSuccessful = s3Response.Buckets ? true : false
+    // Rekognition client initialized and ready
 
     return NextResponse.json({
       success: true,
@@ -37,14 +36,14 @@ export async function GET() {
       buckets: s3Response.Buckets?.map(b => b.Name) || [],
       rekognitionReady: true,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('AWS connection test failed:', error)
     return NextResponse.json(
       {
         success: false,
         message: 'AWS connection failed',
-        error: error.message,
-        errorCode: error.Code || error.name,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: error instanceof Error ? error.name : 'Unknown',
       },
       { status: 500 }
     )

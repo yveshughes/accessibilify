@@ -33,7 +33,7 @@ export default function Home() {
               ADA Compliance Detection
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed ml-10">
-              Our system automatically detects ADA violations such as door width requirements (32" minimum),
+              Our system automatically detects ADA violations such as door width requirements (32&quot; minimum),
               missing handrails, insufficient ramp slopes, contrast issues, and missing accessibility signage
               based on official ADA guidelines.
             </p>

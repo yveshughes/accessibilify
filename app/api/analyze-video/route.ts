@@ -4,10 +4,9 @@ import {
   StartLabelDetectionCommand,
   GetLabelDetectionCommand,
   StartLabelDetectionCommandInput,
-  VideoTooLargeException
+  DetectLabelsCommand
 } from '@aws-sdk/client-rekognition'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 const rekognitionClient = new RekognitionClient({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -57,10 +56,10 @@ export async function POST(request: NextRequest) {
       labels: detectLabelsResponse.Labels,
       accessibilityIssues
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Video analysis error:', error)
     return NextResponse.json(
-      { error: 'Failed to analyze video frame', details: error.message },
+      { error: 'Failed to analyze video frame', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
@@ -112,10 +111,10 @@ export async function PUT(request: NextRequest) {
       fileName,
       message: 'Video analysis started'
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Video upload error:', error)
     return NextResponse.json(
-      { error: 'Failed to start video analysis', details: error.message },
+      { error: 'Failed to start video analysis', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
@@ -166,17 +165,22 @@ export async function GET(request: NextRequest) {
       status: getLabelsResponse.JobStatus,
       error: getLabelsResponse.StatusMessage
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Get results error:', error)
     return NextResponse.json(
-      { error: 'Failed to get analysis results', details: error.message },
+      { error: 'Failed to get analysis results', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
 }
 
 // Analyze labels for ADA compliance issues
-function analyzeAccessibilityIssues(labels: any[], timestamp: number) {
+interface Label {
+  Name?: string
+  Confidence?: number
+}
+
+function analyzeAccessibilityIssues(labels: Label[], timestamp: number) {
   const issues = []
 
   for (const label of labels) {

@@ -2,10 +2,19 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react'
 
+interface Issue {
+  type: string
+  title: string
+  timestamp: number
+  confidence: number
+  description: string
+  adaReference?: string
+}
+
 interface VideoPlayerWithAnalysisProps {
   src: string
   onTimeUpdate?: (currentTime: number) => void
-  onAnalysisUpdate?: (issues: any[]) => void
+  onAnalysisUpdate?: (issues: Issue[]) => void
   seekToTime?: number | null
 }
 
@@ -22,7 +31,7 @@ export function VideoPlayerWithAnalysis({
   const [duration, setDuration] = useState(0)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisInterval, setAnalysisInterval] = useState<NodeJS.Timeout | null>(null)
-  const [detectedIssues, setDetectedIssues] = useState<any[]>([])
+  const [detectedIssues, setDetectedIssues] = useState<Issue[]>([])
 
   // Capture frame and send to Rekognition
   const analyzeFrame = useCallback(async () => {

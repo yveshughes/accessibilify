@@ -4,11 +4,18 @@ import { useState } from 'react'
 import { useVideo } from './VideoContext'
 import { VideoPlayerWithAnalysis } from './VideoPlayerWithAnalysis'
 
+interface Issue {
+  type: string
+  title: string
+  timestamp: number
+  adaReference?: string
+}
+
 export function ConnectedVideo() {
   const { setCurrentTime, seekToTime, selectedAlert } = useVideo()
-  const [liveIssues, setLiveIssues] = useState<any[]>([])
+  const [liveIssues, setLiveIssues] = useState<Issue[]>([])
 
-  const handleAnalysisUpdate = (newIssues: any[]) => {
+  const handleAnalysisUpdate = (newIssues: Issue[]) => {
     // Add new issues to the live feed
     setLiveIssues(prev => [...newIssues, ...prev].slice(0, 3)) // Keep last 3 issues
   }
