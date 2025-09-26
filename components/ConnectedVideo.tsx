@@ -23,6 +23,9 @@ export function ConnectedVideo() {
   const handleAnalysisUpdate = (newIssues: Issue[]) => {
     // Add new issues to the live feed
     setLiveIssues(prev => [...newIssues, ...prev].slice(0, 3)) // Keep last 3 issues
+
+    // Log observations for monitoring
+    console.log('Rekognition detected:', newIssues)
   }
 
   return (

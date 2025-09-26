@@ -2,6 +2,13 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react'
 
+interface BoundingBox {
+  Width?: number
+  Height?: number
+  Left?: number
+  Top?: number
+}
+
 interface Issue {
   type: string
   title: string
@@ -9,6 +16,17 @@ interface Issue {
   confidence: number
   description: string
   adaReference?: string
+  boundingBox?: BoundingBox
+}
+
+interface Observation {
+  label: string
+  confidence: number
+  timestamp: number
+  instances: Array<{
+    BoundingBox?: BoundingBox
+    Confidence?: number
+  }>
 }
 
 interface VideoPlayerWithAnalysisProps {
@@ -32,6 +50,8 @@ export function VideoPlayerWithAnalysis({
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisInterval, setAnalysisInterval] = useState<NodeJS.Timeout | null>(null)
   const [detectedIssues, setDetectedIssues] = useState<Issue[]>([])
+  const [currentObservations, setCurrentObservations] = useState<Observation[]>([])
+  const [showOverlays, setShowOverlays] = useState(true)
 
   // Capture frame and send to Rekognition
   const analyzeFrame = useCallback(async () => {
@@ -69,6 +89,11 @@ export function VideoPlayerWithAnalysis({
         if (data.accessibilityIssues && data.accessibilityIssues.length > 0) {
           setDetectedIssues(prev => [...prev, ...data.accessibilityIssues])
           onAnalysisUpdate?.(data.accessibilityIssues)
+        }
+        if (data.observations && data.observations.length > 0) {
+          setCurrentObservations(data.observations)
+          // Clear observations after 2 seconds
+          setTimeout(() => setCurrentObservations([]), 2000)
         }
       }
     } catch (error) {
@@ -175,13 +200,55 @@ export function VideoPlayerWithAnalysis({
         className="hidden"
       />
 
-      {/* Analysis indicator */}
-      {isAnalyzing && (
-        <div className="absolute top-2 right-2 bg-green-500/80 backdrop-blur text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
-          <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-          Analyzing
+      {/* Bounding box overlays */}
+      {showOverlays && currentObservations.map((obs, idx) => (
+        <div key={`${obs.label}-${idx}`} className="absolute inset-0 pointer-events-none">
+          {obs.instances.map((instance, instIdx) => {
+            const box = instance.BoundingBox
+            if (!box) return null
+
+            return (
+              <div
+                key={`${obs.label}-${instIdx}`}
+                className="absolute border-2 border-yellow-400 bg-yellow-400/10"
+                style={{
+                  left: `${(box.Left || 0) * 100}%`,
+                  top: `${(box.Top || 0) * 100}%`,
+                  width: `${(box.Width || 0) * 100}%`,
+                  height: `${(box.Height || 0) * 100}%`
+                }}
+              >
+                <span className="absolute -top-6 left-0 bg-yellow-400 text-black px-1 py-0.5 text-xs font-medium rounded">
+                  {obs.label} ({Math.round(instance.Confidence || 0)}%)
+                </span>
+              </div>
+            )
+          })}
         </div>
-      )}
+      ))}
+
+      {/* Analysis indicator and overlay toggle */}
+      <div className="absolute top-2 right-2 flex items-center gap-2">
+        {isAnalyzing && (
+          <div className="bg-green-500/80 backdrop-blur text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+            Analyzing
+          </div>
+        )}
+        <button
+          onClick={() => setShowOverlays(!showOverlays)}
+          className="bg-black/50 backdrop-blur text-white p-1.5 rounded-full hover:bg-black/70 transition-colors"
+          title={showOverlays ? "Hide overlays" : "Show overlays"}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {showOverlays ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+            )}
+          </svg>
+        </button>
+      </div>
 
       {/* Video controls */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">

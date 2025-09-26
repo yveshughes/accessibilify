@@ -36,25 +36,27 @@ export async function POST(request: NextRequest) {
     // Convert base64 to buffer
     const imageBuffer = Buffer.from(frameData.replace(/^data:image\/\w+;base64,/, ''), 'base64')
 
-    // Detect labels in the frame
+    // Detect labels in the frame with bounding boxes
     const detectLabelsResponse = await rekognitionClient.send(
       new DetectLabelsCommand({
         Image: {
           Bytes: imageBuffer
         },
-        MaxLabels: 10,
-        MinConfidence: 70
+        MaxLabels: 20,
+        MinConfidence: 60,
+        Features: ['GENERAL_LABELS']
       })
     )
 
     // Process labels for accessibility issues
-    const accessibilityIssues = analyzeAccessibilityIssues(detectLabelsResponse.Labels || [], timestamp)
+    const analysis = analyzeAccessibilityIssues(detectLabelsResponse.Labels || [], timestamp)
 
     return NextResponse.json({
       success: true,
       timestamp,
       labels: detectLabelsResponse.Labels,
-      accessibilityIssues
+      accessibilityIssues: analysis.issues,
+      observations: analysis.observations
     })
   } catch (error) {
     console.error('Video analysis error:', error)
@@ -146,17 +148,21 @@ export async function GET(request: NextRequest) {
 
     if (getLabelsResponse.JobStatus === 'SUCCEEDED') {
       // Process all labels for accessibility issues
-      const allIssues = getLabelsResponse.Labels?.map(label => {
+      const allAnalysis = getLabelsResponse.Labels?.map(label => {
         return analyzeAccessibilityIssues(
           label.Label ? [label.Label] : [],
           label.Timestamp || 0
         )
-      }).flat() || []
+      }) || []
+
+      const allIssues = allAnalysis.flatMap(a => a.issues)
+      const allObservations = allAnalysis.flatMap(a => a.observations)
 
       return NextResponse.json({
         status: 'completed',
         labels: getLabelsResponse.Labels,
         accessibilityIssues: allIssues,
+        observations: allObservations,
         videoMetadata: getLabelsResponse.VideoMetadata
       })
     }
@@ -178,14 +184,38 @@ export async function GET(request: NextRequest) {
 interface Label {
   Name?: string
   Confidence?: number
+  Instances?: Array<{
+    BoundingBox?: {
+      Width?: number
+      Height?: number
+      Left?: number
+      Top?: number
+    }
+    Confidence?: number
+  }>
+  Parents?: Array<{
+    Name?: string
+  }>
 }
 
 function analyzeAccessibilityIssues(labels: Label[], timestamp: number) {
   const issues = []
+  const observations = []
 
+  // Generate general observations
   for (const label of labels) {
     const name = label.Name?.toLowerCase() || ''
     const confidence = label.Confidence || 0
+
+    // Add observation with bounding box if available
+    if (label.Instances && label.Instances.length > 0) {
+      observations.push({
+        label: label.Name,
+        confidence,
+        instances: label.Instances,
+        timestamp
+      })
+    }
 
     // Check for stairs without handrails
     if (name.includes('stairs') || name.includes('staircase')) {
@@ -252,7 +282,44 @@ function analyzeAccessibilityIssues(labels: Label[], timestamp: number) {
         adaReference: 'WCAG 2.1 1.4.3'
       })
     }
+    // Check for accessibility equipment
+    if (name.includes('wheelchair') || name.includes('accessibility')) {
+      issues.push({
+        type: 'success',
+        title: 'Accessibility Feature',
+        description: `${label.Name} detected in frame`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox
+      })
+    }
+
+    // Check for obstacles
+    if (name.includes('obstacle') || name.includes('barrier') || name.includes('blocked')) {
+      issues.push({
+        type: 'warning',
+        title: 'Potential Obstacle',
+        description: 'Detected potential barrier to accessibility',
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 307'
+      })
+    }
+
+    // Check for elevators
+    if (name.includes('elevator') || name.includes('lift')) {
+      issues.push({
+        type: 'success',
+        title: 'Elevator Access',
+        description: 'Elevator detected - verify compliance with call button height and braille signage',
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 407'
+      })
+    }
   }
 
-  return issues
+  return { issues, observations }
 }

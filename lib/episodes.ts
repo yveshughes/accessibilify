@@ -1,55 +1,13 @@
-import { parse as parseFeed } from 'rss-to-json'
-import { array, number, object, parse, string } from 'valibot'
-
+// Simplified episode type for AudioProvider
 export interface Episode {
-  id: number
+  id: string
   title: string
-  published: Date
   description: string
-  content: string
   audio: {
     src: string
     type: string
   }
 }
 
-export async function getAllEpisodes() {
-  const FeedSchema = object({
-    items: array(
-      object({
-        id: number(),
-        title: string(),
-        published: number(),
-        description: string(),
-        content: string(),
-        enclosures: array(
-          object({
-            url: string(),
-            type: string(),
-          }),
-        ),
-      }),
-    ),
-  })
-
-  const feed = (await parseFeed(
-    'https://their-side-feed.vercel.app/api/feed',
-  )) as unknown
-  const items = parse(FeedSchema, feed).items
-
-  const episodes: Array<Episode> = items.map(
-    ({ id, title, description, content, enclosures, published }) => ({
-      id,
-      title: `${id}: ${title}`,
-      published: new Date(published),
-      description,
-      content,
-      audio: enclosures.map((enclosure) => ({
-        src: enclosure.url,
-        type: enclosure.type,
-      }))[0],
-    }),
-  )
-
-  return episodes
-}
+// Empty episodes array since we don't need audio functionality
+export const episodes: Episode[] = []
