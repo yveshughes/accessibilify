@@ -52,6 +52,8 @@ export function VideoPlayerWithAnalysis({
   const [detectedIssues, setDetectedIssues] = useState<Issue[]>([])
   const [currentObservations, setCurrentObservations] = useState<Observation[]>([])
   const [showOverlays, setShowOverlays] = useState(true)
+  const [analysisId, setAnalysisId] = useState<string | null>(null)
+  const [isStoringToSnowflake, setIsStoringToSnowflake] = useState(false)
 
   // Capture frame and send to Rekognition
   const analyzeFrame = useCallback(async () => {
@@ -69,8 +71,8 @@ export function VideoPlayerWithAnalysis({
     // Draw current frame to canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height)
 
-    // Convert to base64
-    const frameData = canvas.toDataURL('image/jpeg', 0.7)
+    // Convert to base64 with higher quality for better detection
+    const frameData = canvas.toDataURL('image/jpeg', 0.95)
 
     try {
       const response = await fetch('/api/analyze-video', {
@@ -91,9 +93,10 @@ export function VideoPlayerWithAnalysis({
           onAnalysisUpdate?.(data.accessibilityIssues)
         }
         if (data.observations && data.observations.length > 0) {
+          // Show all observations with enhanced visibility
           setCurrentObservations(data.observations)
-          // Clear observations after 2 seconds
-          setTimeout(() => setCurrentObservations([]), 2000)
+          // Keep observations visible for 1.5 seconds
+          setTimeout(() => setCurrentObservations([]), 1500)
         }
       }
     } catch (error) {
@@ -104,9 +107,11 @@ export function VideoPlayerWithAnalysis({
   // Start/stop analysis
   useEffect(() => {
     if (isAnalyzing && !analysisInterval) {
-      // Analyze frame every 2 seconds
-      const interval = setInterval(analyzeFrame, 2000)
+      // Analyze frame every 1 second for more frequent detection
+      const interval = setInterval(analyzeFrame, 1000)
       setAnalysisInterval(interval)
+      // Also analyze immediately
+      analyzeFrame()
     } else if (!isAnalyzing && analysisInterval) {
       clearInterval(analysisInterval)
       setAnalysisInterval(null)
@@ -184,6 +189,64 @@ export function VideoPlayerWithAnalysis({
     video.currentTime = time
   }
 
+  // Send analysis data to Snowflake
+  const storeToSnowflake = async () => {
+    if (detectedIssues.length === 0 || isStoringToSnowflake) return
+
+    setIsStoringToSnowflake(true)
+
+    try {
+      // Calculate compliance scores
+      const errorCount = detectedIssues.filter(i => i.type === 'error').length
+      const warningCount = detectedIssues.filter(i => i.type === 'warning').length
+      const successCount = detectedIssues.filter(i => i.type === 'success').length
+      const totalCount = detectedIssues.length
+
+      const mobilityScore = Math.max(0, 100 - (errorCount * 10))
+      const visionScore = Math.max(0, 100 - (warningCount * 5))
+      const hearingScore = 90 // Default score for demo
+      const cognitionScore = 85 // Default score for demo
+      const totalScore = Math.round((mobilityScore + visionScore + hearingScore + cognitionScore) / 4)
+
+      const response = await fetch('/api/snowflake/analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          videoId: src.split('/').pop()?.split('.')[0] || 'demo',
+          title: 'Building Entrance ADA Compliance Analysis',
+          duration: duration,
+          scores: {
+            mobility: mobilityScore,
+            vision: visionScore,
+            hearing: hearingScore,
+            cognition: cognitionScore,
+            total: totalScore
+          },
+          issues: detectedIssues,
+          markers: detectedIssues.map(issue => ({
+            type: issue.type,
+            timestamp: issue.timestamp,
+            confidence: issue.confidence,
+            description: issue.description,
+            boundingBox: issue.boundingBox
+          }))
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setAnalysisId(data.analysisId)
+        console.log('Analysis stored in Snowflake:', data.analysisId)
+      }
+    } catch (error) {
+      console.error('Failed to store analysis in Snowflake:', error)
+    } finally {
+      setIsStoringToSnowflake(false)
+    }
+  }
+
   return (
     <div className="relative w-full">
       <video
@@ -210,16 +273,24 @@ export function VideoPlayerWithAnalysis({
             return (
               <div
                 key={`${obs.label}-${instIdx}`}
-                className="absolute border-2 border-yellow-400 bg-yellow-400/10"
+                className="absolute border-2 bg-opacity-20 animate-pulse"
                 style={{
                   left: `${(box.Left || 0) * 100}%`,
                   top: `${(box.Top || 0) * 100}%`,
                   width: `${(box.Width || 0) * 100}%`,
-                  height: `${(box.Height || 0) * 100}%`
+                  height: `${(box.Height || 0) * 100}%`,
+                  borderColor: obs.confidence > 80 ? '#10b981' : obs.confidence > 60 ? '#eab308' : '#ef4444',
+                  backgroundColor: obs.confidence > 80 ? 'rgba(16, 185, 129, 0.1)' : obs.confidence > 60 ? 'rgba(234, 179, 8, 0.1)' : 'rgba(239, 68, 68, 0.1)'
                 }}
               >
-                <span className="absolute -top-6 left-0 bg-yellow-400 text-black px-1 py-0.5 text-xs font-medium rounded">
-                  {obs.label} ({Math.round(instance.Confidence || 0)}%)
+                <span
+                  className="absolute -top-6 left-0 px-1.5 py-0.5 text-xs font-bold rounded shadow-lg"
+                  style={{
+                    backgroundColor: obs.confidence > 80 ? '#10b981' : obs.confidence > 60 ? '#eab308' : '#ef4444',
+                    color: 'white'
+                  }}
+                >
+                  {obs.label} ({Math.round(instance.Confidence || obs.confidence || 0)}%)
                 </span>
               </div>
             )
@@ -233,6 +304,34 @@ export function VideoPlayerWithAnalysis({
           <div className="bg-green-500/80 backdrop-blur text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
             <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
             Analyzing
+          </div>
+        )}
+        {detectedIssues.length > 5 && !analysisId && (
+          <button
+            onClick={storeToSnowflake}
+            disabled={isStoringToSnowflake}
+            className="bg-blue-600/80 backdrop-blur text-white px-3 py-1 rounded-full text-xs hover:bg-blue-700/80 transition-colors flex items-center gap-1"
+          >
+            {isStoringToSnowflake ? (
+              <>
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                Storing...
+              </>
+            ) : (
+              <>
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" />
+                  <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" />
+                  <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z" />
+                </svg>
+                Save to Snowflake
+              </>
+            )}
+          </button>
+        )}
+        {analysisId && (
+          <div className="bg-purple-600/80 backdrop-blur text-white px-3 py-1 rounded-full text-xs">
+            Stored: {analysisId.substring(0, 8)}...
           </div>
         )}
         <button

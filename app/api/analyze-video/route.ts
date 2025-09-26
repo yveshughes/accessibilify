@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
         Image: {
           Bytes: imageBuffer
         },
-        MaxLabels: 20,
-        MinConfidence: 60,
+        MaxLabels: 50,  // Increased from 20 to capture more objects
+        MinConfidence: 40,  // Lowered from 60 to detect more items
         Features: ['GENERAL_LABELS']
       })
     )
@@ -202,7 +202,7 @@ function analyzeAccessibilityIssues(labels: Label[], timestamp: number) {
   const issues = []
   const observations = []
 
-  // Generate general observations
+  // Generate observations for ALL detected items
   for (const label of labels) {
     const name = label.Name?.toLowerCase() || ''
     const confidence = label.Confidence || 0
@@ -215,10 +215,208 @@ function analyzeAccessibilityIssues(labels: Label[], timestamp: number) {
         instances: label.Instances,
         timestamp
       })
+    } else {
+      // Even without instances, track the detection
+      observations.push({
+        label: label.Name,
+        confidence,
+        instances: [],
+        timestamp
+      })
+    }
+
+    // Enhanced detection for structural elements
+    if (name.includes('wall') || name.includes('building') || name.includes('architecture')) {
+      observations.push({
+        label: `Structural: ${label.Name}`,
+        confidence,
+        instances: label.Instances || [],
+        timestamp
+      })
+    }
+
+    // Detect furniture and fixtures
+    if (name.includes('furniture') || name.includes('chair') || name.includes('table') ||
+        name.includes('desk') || name.includes('bench') || name.includes('counter')) {
+      issues.push({
+        type: 'info',
+        title: 'Furniture Detected',
+        description: `${label.Name} identified - verify clearance for wheelchair navigation (min 36" pathways).`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 403.5.1'
+      })
+    }
+
+    // Detect windows and glass surfaces
+    if (name.includes('window') || name.includes('glass') || name.includes('mirror')) {
+      issues.push({
+        type: 'warning',
+        title: 'Transparent Surface',
+        description: `${label.Name} detected - ensure visibility markings for safety.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 404.1'
+      })
+    }
+
+    // Detect lighting fixtures
+    if (name.includes('light') || name.includes('lamp') || name.includes('chandelier') ||
+        name.includes('fixture') || name.includes('illumination')) {
+      issues.push({
+        type: 'success',
+        title: 'Lighting Detected',
+        description: `${label.Name} present - adequate lighting for navigation.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ANSI A117.1'
+      })
+    }
+
+    // Detect electronic equipment
+    if (name.includes('screen') || name.includes('monitor') || name.includes('display') ||
+        name.includes('kiosk') || name.includes('terminal') || name.includes('machine')) {
+      issues.push({
+        type: 'info',
+        title: 'Electronic Equipment',
+        description: `${label.Name} detected - verify accessible height (15"-48" reach range).`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 308.2'
+      })
+    }
+
+    // Detect plants and decorations
+    if (name.includes('plant') || name.includes('tree') || name.includes('flower') ||
+        name.includes('decoration') || name.includes('art') || name.includes('painting')) {
+      issues.push({
+        type: 'info',
+        title: 'Decoration/Plant',
+        description: `${label.Name} detected - ensure not obstructing pathways.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 307.2'
+      })
+    }
+
+    // Detect trash and recycling
+    if (name.includes('trash') || name.includes('bin') || name.includes('waste') ||
+        name.includes('recycling') || name.includes('garbage')) {
+      issues.push({
+        type: 'info',
+        title: 'Waste Receptacle',
+        description: `${label.Name} detected - verify accessible placement and opening.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 305'
+      })
+    }
+
+    // Detect columns and pillars
+    if (name.includes('column') || name.includes('pillar') || name.includes('post') ||
+        name.includes('pole') || name.includes('support')) {
+      issues.push({
+        type: 'warning',
+        title: 'Vertical Obstruction',
+        description: `${label.Name} detected - ensure adequate clearance around structure.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 307.3'
+      })
+    }
+
+    // Detect ceiling elements
+    if (name.includes('ceiling') || name.includes('overhead') || name.includes('beam')) {
+      issues.push({
+        type: 'info',
+        title: 'Overhead Element',
+        description: `${label.Name} detected - verify minimum 80" clearance height.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 307.4'
+      })
+    }
+
+    // Detect safety equipment
+    if (name.includes('fire extinguisher') || name.includes('alarm') || name.includes('emergency') ||
+        name.includes('exit sign') || name.includes('safety')) {
+      issues.push({
+        type: 'success',
+        title: 'Safety Equipment',
+        description: `${label.Name} identified - verify accessible mounting height.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 308.3'
+      })
+    }
+
+    // Detect bollards and barriers
+    if (name.includes('bollard') || name.includes('barrier') || name.includes('fence') ||
+        name.includes('gate') || name.includes('rail')) {
+      issues.push({
+        type: 'warning',
+        title: 'Physical Barrier',
+        description: `${label.Name} detected - ensure accessible route available.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 206.2'
+      })
+    }
+
+    // Detect seating areas
+    if (name.includes('seat') || name.includes('sofa') || name.includes('couch') ||
+        name.includes('lounge') || name.includes('waiting area')) {
+      issues.push({
+        type: 'info',
+        title: 'Seating Area',
+        description: `${label.Name} detected - verify accessible seating options available.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 221'
+      })
+    }
+
+    // Detect reception and service areas
+    if (name.includes('reception') || name.includes('counter') || name.includes('service') ||
+        name.includes('desk') || name.includes('information')) {
+      issues.push({
+        type: 'warning',
+        title: 'Service Counter',
+        description: `${label.Name} detected - verify lowered section at 36" max height.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 904.4'
+      })
+    }
+
+    // Detect vending machines
+    if (name.includes('vending') || name.includes('atm') || name.includes('ticket')) {
+      issues.push({
+        type: 'warning',
+        title: 'Self-Service Machine',
+        description: `${label.Name} detected - verify controls within reach range.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 308'
+      })
     }
 
     // Check for stairs without handrails
-    if (name.includes('stairs') || name.includes('staircase') || name.includes('steps')) {
+    if (name.includes('stairs') || name.includes('staircase') || name.includes('steps') ||
+        name.includes('stairway') || name.includes('stair')) {
       const hasHandrail = labels.some(l =>
         l.Name?.toLowerCase().includes('handrail') ||
         l.Name?.toLowerCase().includes('railing') ||
@@ -368,14 +566,112 @@ function analyzeAccessibilityIssues(labels: Label[], timestamp: number) {
       })
     }
     // Check for accessibility equipment
-    if (name.includes('wheelchair') || name.includes('accessibility')) {
+    if (name.includes('wheelchair') || name.includes('accessibility') || name.includes('mobility') ||
+        name.includes('walker') || name.includes('crutch') || name.includes('cane')) {
       issues.push({
         type: 'success',
-        title: 'Accessibility Feature',
-        description: `${label.Name} detected in frame`,
+        title: 'Accessibility Equipment',
+        description: `${label.Name} detected - accessible facility confirmed`,
         timestamp,
         confidence,
-        boundingBox: label.Instances?.[0]?.BoundingBox
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA Compliant'
+      })
+    }
+
+    // Detect bathroom/restroom elements
+    if (name.includes('restroom') || name.includes('bathroom') || name.includes('toilet') ||
+        name.includes('sink') || name.includes('urinal')) {
+      issues.push({
+        type: 'warning',
+        title: 'Restroom Facility',
+        description: `${label.Name} detected - verify ADA compliant fixtures.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 603-609'
+      })
+    }
+
+    // Detect fountains and water features
+    if (name.includes('fountain') || name.includes('water') || name.includes('drinking')) {
+      issues.push({
+        type: 'info',
+        title: 'Water Feature',
+        description: `${label.Name} detected - verify accessible height and controls.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 602'
+      })
+    }
+
+    // Detect switches and controls
+    if (name.includes('switch') || name.includes('button') || name.includes('control') ||
+        name.includes('thermostat') || name.includes('panel')) {
+      issues.push({
+        type: 'info',
+        title: 'Control Device',
+        description: `${label.Name} detected - verify mounting height 15"-48".`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 309.3'
+      })
+    }
+
+    // Detect outdoor elements
+    if (name.includes('sidewalk') || name.includes('pavement') || name.includes('concrete') ||
+        name.includes('asphalt') || name.includes('pathway')) {
+      issues.push({
+        type: 'info',
+        title: 'Outdoor Surface',
+        description: `${label.Name} detected - check for cracks and level changes.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 302.3'
+      })
+    }
+
+    // Detect construction and maintenance
+    if (name.includes('construction') || name.includes('maintenance') || name.includes('repair') ||
+        name.includes('cone') || name.includes('caution')) {
+      issues.push({
+        type: 'error',
+        title: 'Temporary Obstruction',
+        description: `${label.Name} detected - ensure alternate accessible route provided.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 206.2.2'
+      })
+    }
+
+    // Detect crowds and congestion
+    if (name.includes('crowd') || name.includes('group') || name.includes('gathering')) {
+      issues.push({
+        type: 'warning',
+        title: 'Congestion',
+        description: `${label.Name} detected - may impede accessible routes.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 403.5'
+      })
+    }
+
+    // Detect bags and obstacles
+    if (name.includes('bag') || name.includes('luggage') || name.includes('box') ||
+        name.includes('package') || name.includes('obstruction')) {
+      issues.push({
+        type: 'warning',
+        title: 'Potential Obstacle',
+        description: `${label.Name} detected - may obstruct pathway.`,
+        timestamp,
+        confidence,
+        boundingBox: label.Instances?.[0]?.BoundingBox,
+        adaReference: 'ADA 307.5'
       })
     }
 

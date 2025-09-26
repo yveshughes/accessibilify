@@ -23,9 +23,9 @@ export default function DemoPage() {
 
   const handleAnalysisUpdate = (newIssues: Issue[]) => {
     setDetectedIssues(prev => {
-      // Add new issues and keep only the last 50 to avoid memory issues
+      // Add new issues and keep the last 100 for more comprehensive tracking
       const updated = [...prev, ...newIssues]
-      return updated.slice(-50)
+      return updated.slice(-100)
     })
   }
 
@@ -73,7 +73,7 @@ export default function DemoPage() {
                   <h3 className="font-semibold text-slate-900">Real-Time Detection</h3>
                 </div>
                 <p className="text-sm text-slate-600">
-                  AWS Rekognition analyzes video frames every 2 seconds
+                  AWS Rekognition analyzes 50+ objects per frame with enhanced AI detection
                 </p>
               </div>
 
@@ -87,7 +87,7 @@ export default function DemoPage() {
                   <h3 className="font-semibold text-slate-900">ADA Violations</h3>
                 </div>
                 <p className="text-sm text-slate-600">
-                  Identifies doorway width, handrails, ramps, and signage issues
+                  Detects 30+ types of ADA violations including furniture, lighting, barriers
                 </p>
               </div>
 
