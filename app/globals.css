@@ -1,0 +1,38 @@
+@import 'tailwindcss';
+
+@plugin '@tailwindcss/typography';
+
+@theme {
+  --font-sans: Satoshi, ui-sans-serif, system-ui, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-mono: var(--font-geist-mono);
+  --spacing-112: 28rem;
+  --spacing-120: 30rem;
+}
+
+@layer utilities {
+  .w-112 {
+    width: 28rem;
+  }
+  .w-120 {
+    width: 30rem;
+  }
+  .xl\:w-120 {
+    width: 30rem;
+  }
+  .lg\:w-112 {
+    width: 28rem;
+  }
+  .lg\:ml-112 {
+    margin-left: 28rem;
+  }
+  .xl\:ml-120 {
+    margin-left: 30rem;
+  }
+  .lg\:left-112 {
+    left: 28rem;
+  }
+  .xl\:left-120 {
+    left: 30rem;
+  }
+}
