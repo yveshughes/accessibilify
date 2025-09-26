@@ -49,14 +49,28 @@ export default function DemoPage() {
             </div>
           </div>
 
-          <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-900 font-medium mb-2">
-              🎥 Sample Video Available
-            </p>
-            <p className="text-sm text-blue-700">
-              The demo includes a sample building walkthrough video that demonstrates our detection capabilities.
-              Navigate to the Home page to see it in action.
-            </p>
+          <div className="mt-8 space-y-4">
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-900 font-medium mb-2">
+                🎥 Sample Video Available
+              </p>
+              <p className="text-sm text-blue-700">
+                The demo includes a sample building walkthrough video that demonstrates our detection capabilities.
+                Navigate to the Home page to see it in action.
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <a
+                href="/demo/upload"
+                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Try Live Demo with Your Video
+                <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </a>
+            </div>
           </div>
         </div>
 

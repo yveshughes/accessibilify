@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useVideo } from './VideoContext'
 import { VideoPlayerWithAnalysis } from './VideoPlayerWithAnalysis'
 
+// Interface for accessibility issues detected by AWS Rekognition
 interface Issue {
   type: string
   title: string
@@ -11,10 +12,14 @@ interface Issue {
   adaReference?: string
 }
 
+// Main video component that connects to the VideoContext
+// Displays the sample building entrance video with AI analysis
 export function ConnectedVideo() {
   const { setCurrentTime, seekToTime, selectedAlert } = useVideo()
   const [liveIssues, setLiveIssues] = useState<Issue[]>([])
+  const [videoUrl] = useState<string>('/video/enter_building.mp4')
 
+  // Update the live feed with new accessibility issues from Rekognition
   const handleAnalysisUpdate = (newIssues: Issue[]) => {
     // Add new issues to the live feed
     setLiveIssues(prev => [...newIssues, ...prev].slice(0, 3)) // Keep last 3 issues
@@ -24,7 +29,7 @@ export function ConnectedVideo() {
     <div className="space-y-4">
       <div className="relative mx-auto block w-48 overflow-hidden rounded-lg bg-slate-900 shadow-xl shadow-slate-200 sm:w-64 sm:rounded-xl lg:w-auto lg:rounded-2xl">
         <VideoPlayerWithAnalysis
-          src="/video/enter_building.mp4"
+          src={videoUrl}
           onTimeUpdate={setCurrentTime}
           onAnalysisUpdate={handleAnalysisUpdate}
           seekToTime={seekToTime}
