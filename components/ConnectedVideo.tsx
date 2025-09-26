@@ -1,21 +1,57 @@
 'use client'
 
+import { useState } from 'react'
 import { useVideo } from './VideoContext'
-import { VideoPlayer } from './VideoPlayer'
+import { VideoPlayerWithAnalysis } from './VideoPlayerWithAnalysis'
 
 export function ConnectedVideo() {
   const { setCurrentTime, seekToTime, selectedAlert } = useVideo()
+  const [liveIssues, setLiveIssues] = useState<any[]>([])
+
+  const handleAnalysisUpdate = (newIssues: any[]) => {
+    // Add new issues to the live feed
+    setLiveIssues(prev => [...newIssues, ...prev].slice(0, 3)) // Keep last 3 issues
+  }
 
   return (
     <div className="space-y-4">
       <div className="relative mx-auto block w-48 overflow-hidden rounded-lg bg-slate-900 shadow-xl shadow-slate-200 sm:w-64 sm:rounded-xl lg:w-auto lg:rounded-2xl">
-        <VideoPlayer
+        <VideoPlayerWithAnalysis
           src="/video/enter_building.mp4"
           onTimeUpdate={setCurrentTime}
+          onAnalysisUpdate={handleAnalysisUpdate}
           seekToTime={seekToTime}
         />
         <div className="absolute inset-0 rounded-lg ring-1 ring-black/10 ring-inset sm:rounded-xl lg:rounded-2xl pointer-events-none" />
       </div>
+
+      {/* Live Rekognition Analysis Feed */}
+      {liveIssues.length > 0 && (
+        <div className="space-y-2 px-2">
+          <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">AI Detection</h3>
+          {liveIssues.map((issue, index) => (
+            <div
+              key={index}
+              className={`text-xs p-2 rounded-lg border transition-all duration-300 ${
+                issue.type === 'success'
+                  ? 'bg-green-50 border-green-200 text-green-800'
+                  : issue.type === 'warning'
+                  ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
+                  : 'bg-blue-50 border-blue-200 text-blue-800'
+              }`}
+              style={{
+                opacity: 1 - (index * 0.3),
+                transform: `scale(${1 - (index * 0.05)})`
+              }}
+            >
+              <div className="font-medium">{issue.title}</div>
+              {issue.adaReference && (
+                <div className="text-xs opacity-75 mt-1">{issue.adaReference}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {selectedAlert && (
         <div className="bg-slate-100 rounded-lg p-3 animate-fadeIn">
