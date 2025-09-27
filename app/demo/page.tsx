@@ -81,6 +81,48 @@ export default function DemoPage() {
         <div className="grid lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {/* Main Content - Full Width on Mobile, 2/3 on Desktop */}
           <div className="lg:col-span-2">
+
+            {/* Video Selection Controls */}
+            <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900">Select Video Source</h3>
+                <div className="flex gap-2">
+                  {videoOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        handleVideoChange(option.value)
+                        // Update URL parameter
+                        const url = new URL(window.location.href)
+                        if (option.key === 'default') {
+                          url.searchParams.delete('video')
+                        } else {
+                          url.searchParams.set('video', option.key)
+                        }
+                        window.history.pushState({}, '', url)
+                      }}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        selectedVideo === option.value
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => window.location.href = '/demo/upload'}
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    Upload Video
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Video Player */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <VideoPlayerWithAnalysis
