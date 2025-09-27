@@ -147,6 +147,14 @@ export function VideoPlayerWithAnalysis({
     }
   }, [isAnalyzing, analysisInterval, analyzeFrame])
 
+  // Reset when video source changes
+  useEffect(() => {
+    console.log('Video source changed, resetting analysis:', src)
+    setDetectedIssues([])
+    setCurrentObservations([])
+    setAnalysisId(null)
+  }, [src])
+
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
