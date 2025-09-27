@@ -124,34 +124,49 @@ export default function RootLayout({
                 </div>
                 <ConnectedVideo />
               <section className="mt-10 lg:mt-12">
-                <ul
-                  role="list"
-                  className="mt-4 flex justify-center gap-10 text-base font-medium text-slate-700 sm:gap-8 lg:flex-col lg:gap-4"
-                >
-                  {(
-                    [
-                      ['Snowflake', 'https://www.snowflake.com'],
-                      ['Writer', 'https://writer.com'],
-                      ['AWS', 'https://aws.amazon.com'],
-                      ['Llama', 'https://llama.com'],
-                      ['LandingAI', 'https://landing.ai'],
-                      ['CrewAI', 'https://www.crewai.com'],
-                      ['Glean', 'https://www.glean.com'],
-                    ] as const
-                  ).map(([sponsor, url]) => (
-                    <li key={sponsor} className="flex">
-                      <Link
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-center text-slate-600 hover:text-slate-900"
-                        aria-label={`Visit ${sponsor} website`}
-                      >
-                        <span className="hidden sm:block">{sponsor}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                <h2 className="text-sm font-semibold text-slate-900 mb-4">Select Demo Video</h2>
+                <div className="flex flex-col gap-2">
+                  <Link
+                    href="/demo"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Building Entrance</span>
+                  </Link>
+                  <Link
+                    href="/demo?video=sample_1"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Sample Video 1</span>
+                  </Link>
+                  <Link
+                    href="/demo?video=sample_2"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Sample Video 2</span>
+                  </Link>
+                  <div className="my-2 h-px bg-slate-200" />
+                  <Link
+                    href="/demo/upload"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <span>Upload Your Video</span>
+                  </Link>
+                </div>
               </section>
             </div>
           </header>

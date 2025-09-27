@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { VideoPlayerWithAnalysis } from '@/components/VideoPlayerWithAnalysis'
 
 interface Issue {
@@ -19,15 +20,32 @@ interface Issue {
 }
 
 export default function DemoPage() {
+  const searchParams = useSearchParams()
   const [detectedIssues, setDetectedIssues] = useState<Issue[]>([])
-  const [selectedVideo, setSelectedVideo] = useState('/video/enter_building.mp4')
   const [showUpload, setShowUpload] = useState(false)
 
   const videoOptions = [
-    { value: '/video/enter_building.mp4', label: 'Building Entrance' },
-    { value: '/video/sample_1.mp4', label: 'Sample Video 1' },
-    { value: '/video/sample_2.mp4', label: 'Sample Video 2' }
+    { value: '/video/enter_building.mp4', label: 'Building Entrance', key: 'default' },
+    { value: '/video/sample_1.mp4', label: 'Sample Video 1', key: 'sample_1' },
+    { value: '/video/sample_2.mp4', label: 'Sample Video 2', key: 'sample_2' }
   ]
+
+  // Get video from URL parameter or default
+  const videoParam = searchParams.get('video')
+  const initialVideo = videoParam === 'sample_1' ? '/video/sample_1.mp4' :
+                      videoParam === 'sample_2' ? '/video/sample_2.mp4' :
+                      '/video/enter_building.mp4'
+
+  const [selectedVideo, setSelectedVideo] = useState(initialVideo)
+
+  useEffect(() => {
+    // Update video when URL parameter changes
+    const newVideo = videoParam === 'sample_1' ? '/video/sample_1.mp4' :
+                    videoParam === 'sample_2' ? '/video/sample_2.mp4' :
+                    '/video/enter_building.mp4'
+    setSelectedVideo(newVideo)
+    setDetectedIssues([]) // Clear previous issues
+  }, [videoParam])
 
   const handleAnalysisUpdate = (newIssues: Issue[]) => {
     setDetectedIssues(prev => {
@@ -72,7 +90,17 @@ export default function DemoPage() {
                   {videoOptions.map((option) => (
                     <button
                       key={option.value}
-                      onClick={() => handleVideoChange(option.value)}
+                      onClick={() => {
+                        handleVideoChange(option.value)
+                        // Update URL parameter
+                        const url = new URL(window.location.href)
+                        if (option.key === 'default') {
+                          url.searchParams.delete('video')
+                        } else {
+                          url.searchParams.set('video', option.key)
+                        }
+                        window.history.pushState({}, '', url)
+                      }}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                         selectedVideo === option.value
                           ? 'bg-blue-600 text-white'
