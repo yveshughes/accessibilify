@@ -54,6 +54,19 @@ export function VideoPlayerWithAnalysis({
   const [showOverlays, setShowOverlays] = useState(true)
   const [analysisId, setAnalysisId] = useState<string | null>(null)
   const [isStoringToSnowflake, setIsStoringToSnowflake] = useState(false)
+  const [playbackRate, setPlaybackRate] = useState(1.0)
+  const [showSlowMotion, setShowSlowMotion] = useState(false)
+
+  // Toggle slow motion
+  const toggleSlowMotion = () => {
+    const video = videoRef.current
+    if (!video) return
+
+    const newRate = showSlowMotion ? 1.0 : 0.5
+    video.playbackRate = newRate
+    setPlaybackRate(newRate)
+    setShowSlowMotion(!showSlowMotion)
+  }
 
   // Capture frame and send to Rekognition
   const analyzeFrame = useCallback(async () => {
@@ -64,6 +77,12 @@ export function VideoPlayerWithAnalysis({
     const context = canvas.getContext('2d')
     if (!context) return
 
+    // Wait for video to be ready
+    if (video.readyState < 2) {
+      console.log('Video not ready, waiting...')
+      return
+    }
+
     // Set canvas size to match video
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
@@ -73,6 +92,8 @@ export function VideoPlayerWithAnalysis({
 
     // Convert to base64 with higher quality for better detection
     const frameData = canvas.toDataURL('image/jpeg', 0.95)
+
+    console.log(`Analyzing frame at ${video.currentTime}s for video: ${src}`)
 
     try {
       const response = await fetch('/api/analyze-video', {
@@ -108,6 +129,7 @@ export function VideoPlayerWithAnalysis({
   // Start/stop analysis
   useEffect(() => {
     if (isAnalyzing && !analysisInterval) {
+      console.log('Starting analysis interval for:', src)
       // Analyze frame every 1 second for more frequent detection
       const interval = setInterval(analyzeFrame, 1000)
       setAnalysisInterval(interval)
@@ -258,6 +280,28 @@ export function VideoPlayerWithAnalysis({
         loop
         muted
         playsInline
+        onLoadedMetadata={() => {
+          const video = videoRef.current
+          if (video) {
+            setDuration(video.duration)
+            console.log(`Video loaded: ${src}, duration: ${video.duration}s`)
+            // Start analyzing after metadata loads
+            setTimeout(() => {
+              setIsAnalyzing(true)
+              analyzeFrame()
+            }, 100)
+          }
+        }}
+        onPlay={() => {
+          console.log(`Video playing: ${src}`)
+          setIsPlaying(true)
+          if (!isAnalyzing) {
+            setIsAnalyzing(true)
+          }
+        }}
+        onPause={() => {
+          setIsPlaying(false)
+        }}
       />
       <canvas
         ref={canvasRef}
@@ -341,7 +385,7 @@ export function VideoPlayerWithAnalysis({
         </div>
       )}
 
-      {/* Analysis indicator and overlay toggle */}
+      {/* Analysis indicator and controls */}
       <div className="absolute top-2 right-2 flex items-center gap-2">
         {isAnalyzing && (
           <div className="bg-green-500/80 backdrop-blur text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
@@ -349,6 +393,21 @@ export function VideoPlayerWithAnalysis({
             Analyzing
           </div>
         )}
+        <button
+          onClick={toggleSlowMotion}
+          className={`backdrop-blur text-white p-1.5 rounded-full transition-colors ${
+            showSlowMotion ? 'bg-purple-600/80 hover:bg-purple-700/80' : 'bg-black/50 hover:bg-black/70'
+          }`}
+          title={showSlowMotion ? "Normal speed" : "Slow motion (0.5x)"}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d={showSlowMotion ?
+                    "M13 5l7 7-7 7M5 5l7 7-7 7" : // Fast forward icon when in slow motion
+                    "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" // Clock icon for slow motion
+                  } />
+          </svg>
+        </button>
         {detectedIssues.length > 5 && !analysisId && (
           <button
             onClick={storeToSnowflake}
@@ -409,6 +468,11 @@ export function VideoPlayerWithAnalysis({
               </svg>
             )}
           </button>
+          {showSlowMotion && (
+            <span className="text-white text-xs font-medium bg-purple-600/60 px-2 py-1 rounded-full">
+              0.5x
+            </span>
+          )}
           <div className="flex-1 bg-white/20 backdrop-blur rounded-full h-1 cursor-pointer"
                onClick={(e) => {
                  const rect = e.currentTarget.getBoundingClientRect()
