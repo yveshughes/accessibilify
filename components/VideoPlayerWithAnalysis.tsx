@@ -62,24 +62,48 @@ export function VideoPlayerWithAnalysis({
     const video = videoRef.current
     if (!video) return
 
-    const newRate = showSlowMotion ? 1.0 : 0.5
+    const newRate = showSlowMotion ? 1.0 : 0.25  // Slower for better observation
     video.playbackRate = newRate
     setPlaybackRate(newRate)
     setShowSlowMotion(!showSlowMotion)
+
+    // Clear current observations when toggling
+    setCurrentObservations([])
+
+    // Restart analysis interval with new timing
+    if (analysisInterval) {
+      clearInterval(analysisInterval)
+      setAnalysisInterval(null)
+    }
   }
 
   // Capture frame and send to Rekognition
   const analyzeFrame = useCallback(async () => {
     const video = videoRef.current
     const canvas = canvasRef.current
-    if (!video || !canvas || video.paused || video.ended) return
+
+    console.log('🔄 analyzeFrame called', {
+      hasVideo: !!video,
+      hasCanvas: !!canvas,
+      videoPaused: video?.paused,
+      videoEnded: video?.ended,
+      readyState: video?.readyState
+    })
+
+    if (!video || !canvas || video.paused || video.ended) {
+      console.log('⏸️ Skipping analysis - video not ready or paused')
+      return
+    }
 
     const context = canvas.getContext('2d')
-    if (!context) return
+    if (!context) {
+      console.error('❌ No canvas context')
+      return
+    }
 
     // Wait for video to be ready
     if (video.readyState < 2) {
-      console.log('Video not ready, waiting...')
+      console.log('⏳ Video not ready, waiting... (readyState:', video.readyState, ')')
       return
     }
 
@@ -93,7 +117,7 @@ export function VideoPlayerWithAnalysis({
     // Convert to base64 with higher quality for better detection
     const frameData = canvas.toDataURL('image/jpeg', 0.95)
 
-    console.log(`Analyzing frame at ${video.currentTime}s for video: ${src}`)
+    console.log(`📸 Analyzing frame at ${video.currentTime.toFixed(1)}s for: ${src}`)
 
     try {
       const response = await fetch('/api/analyze-video', {
@@ -114,11 +138,12 @@ export function VideoPlayerWithAnalysis({
           onAnalysisUpdate?.(data.accessibilityIssues)
         }
         if (data.observations && data.observations.length > 0) {
-          // Show all observations with enhanced visibility
-          console.log('Received observations:', data.observations)
+          // Show observations with enhanced visibility
+          console.log('Received observations:', data.observations.length, 'items')
           setCurrentObservations(data.observations)
-          // Keep observations visible for 2.5 seconds for better visibility
-          setTimeout(() => setCurrentObservations([]), 2500)
+          // Keep observations visible longer when in slow motion
+          const displayTime = showSlowMotion ? 4000 : 2000
+          setTimeout(() => setCurrentObservations([]), displayTime)
         }
       }
     } catch (error) {
@@ -130,8 +155,9 @@ export function VideoPlayerWithAnalysis({
   useEffect(() => {
     if (isAnalyzing && !analysisInterval) {
       console.log('Starting analysis interval for:', src)
-      // Analyze frame every 1 second for more frequent detection
-      const interval = setInterval(analyzeFrame, 1000)
+      // Analyze less frequently in slow motion for clearer viewing
+      const intervalTime = showSlowMotion ? 3000 : 2000
+      const interval = setInterval(analyzeFrame, intervalTime)
       setAnalysisInterval(interval)
       // Also analyze immediately
       analyzeFrame()
@@ -145,7 +171,7 @@ export function VideoPlayerWithAnalysis({
         clearInterval(analysisInterval)
       }
     }
-  }, [isAnalyzing, analysisInterval, analyzeFrame])
+  }, [isAnalyzing, analysisInterval, analyzeFrame, showSlowMotion])
 
   // Reset when video source changes
   useEffect(() => {
@@ -292,20 +318,25 @@ export function VideoPlayerWithAnalysis({
           const video = videoRef.current
           if (video) {
             setDuration(video.duration)
-            console.log(`Video loaded: ${src}, duration: ${video.duration}s`)
+            console.log(`✅ Video loaded: ${src}, duration: ${video.duration}s`)
             // Start analyzing after metadata loads
             setTimeout(() => {
+              console.log('🎬 Starting analysis after metadata load...')
               setIsAnalyzing(true)
               analyzeFrame()
             }, 100)
           }
         }}
         onPlay={() => {
-          console.log(`Video playing: ${src}`)
+          console.log(`▶️ Video playing: ${src}`)
           setIsPlaying(true)
           if (!isAnalyzing) {
+            console.log('🔍 Enabling analysis on play')
             setIsAnalyzing(true)
           }
+        }}
+        onError={(e) => {
+          console.error('❌ Video error:', e)
         }}
         onPause={() => {
           setIsPlaying(false)
@@ -406,7 +437,7 @@ export function VideoPlayerWithAnalysis({
           className={`backdrop-blur text-white p-1.5 rounded-full transition-colors ${
             showSlowMotion ? 'bg-purple-600/80 hover:bg-purple-700/80' : 'bg-black/50 hover:bg-black/70'
           }`}
-          title={showSlowMotion ? "Normal speed" : "Slow motion (0.5x)"}
+          title={showSlowMotion ? "Normal speed" : "Slow motion (0.25x)"}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -478,7 +509,7 @@ export function VideoPlayerWithAnalysis({
           </button>
           {showSlowMotion && (
             <span className="text-white text-xs font-medium bg-purple-600/60 px-2 py-1 rounded-full">
-              0.5x
+              0.25x
             </span>
           )}
           <div className="flex-1 bg-white/20 backdrop-blur rounded-full h-1 cursor-pointer"

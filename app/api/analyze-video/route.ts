@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
         Image: {
           Bytes: imageBuffer
         },
-        MaxLabels: 100,  // Increased to capture more objects
-        MinConfidence: 20   // Lower threshold to detect more items
+        MaxLabels: 15,  // Limit to prevent overwhelming display
+        MinConfidence: 70   // Higher threshold for quality detections
       })
     )
 
@@ -208,28 +208,34 @@ function analyzeAccessibilityIssues(labels: Label[], timestamp: number) {
   const issues = []
   const observations = []
 
-  // Generate observations for ALL detected items - ALWAYS show bounding boxes
+  // Priority list for accessibility-relevant items
+  const accessibilityKeywords = [
+    'door', 'entrance', 'exit', 'sign', 'elevator', 'stairs', 'ramp',
+    'handrail', 'button', 'switch', 'wheelchair', 'accessible',
+    'television', 'screen', 'monitor', 'display', 'chair', 'table',
+    'desk', 'light', 'lamp', 'control', 'panel'
+  ]
+
+  // Generate observations for detected items - filter for relevance
   for (const label of labels) {
     const name = label.Name?.toLowerCase() || ''
     const confidence = label.Confidence || 0
 
-    // Always add observations for visual feedback
-    observations.push({
-      label: label.Name,
-      confidence,
-      instances: label.Instances && label.Instances.length > 0 ? label.Instances :
-                 // Create a default instance if none exists to ensure visibility
-                 [{
-                   BoundingBox: {
-                     Width: 0.1,
-                     Height: 0.1,
-                     Left: Math.random() * 0.8,
-                     Top: Math.random() * 0.8
-                   },
-                   Confidence: confidence
-                 }],
-      timestamp
-    })
+    // Only show bounding boxes for accessibility-relevant items OR high confidence items
+    const isRelevant = accessibilityKeywords.some(keyword => name.includes(keyword))
+    const isHighConfidence = confidence > 85
+
+    if (isRelevant || isHighConfidence) {
+      // Only add items with actual bounding boxes
+      if (label.Instances && label.Instances.length > 0) {
+        observations.push({
+          label: label.Name,
+          confidence,
+          instances: label.Instances.slice(0, 2), // Limit to 2 instances per label
+          timestamp
+        })
+      }
+    }
 
     // Log what we detected for debugging
     if (label.Instances && label.Instances.length > 0) {
