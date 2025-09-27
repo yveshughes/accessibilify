@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { VideoPlayerWithAnalysis } from '@/components/VideoPlayerWithAnalysis'
 
@@ -17,6 +17,14 @@ interface Issue {
     Left?: number
     Top?: number
   }
+}
+
+interface ComplianceScores {
+  mobility: number
+  vision: number
+  hearing: number
+  cognition: number
+  total: number
 }
 
 export default function DemoPage() {
@@ -65,6 +73,125 @@ export default function DemoPage() {
     setDetectedIssues([]) // Clear previous issues
   }
 
+  // Calculate real-time compliance scores based on detected issues
+  const complianceScores = useMemo((): ComplianceScores => {
+    if (detectedIssues.length === 0) {
+      return { mobility: 100, vision: 100, hearing: 100, cognition: 100, total: 100 }
+    }
+
+    // Base scores start at 100
+    let mobilityScore = 100
+    let visionScore = 100
+    let hearingScore = 100
+    let cognitionScore = 100
+
+    // Count issues by category and type
+    let mobilityIssues = 0
+    let visionIssues = 0
+    let hearingIssues = 0
+    let cognitionIssues = 0
+    let positiveFeatures = 0
+
+    detectedIssues.forEach(issue => {
+      // Positive features increase scores
+      if (issue.type === 'success') {
+        positiveFeatures++
+
+        // Boost relevant category based on feature type
+        if (issue.title.toLowerCase().includes('handrail') ||
+            issue.title.toLowerCase().includes('ramp') ||
+            issue.title.toLowerCase().includes('wheelchair')) {
+          mobilityScore = Math.min(100, mobilityScore + 2)
+        }
+        if (issue.title.toLowerCase().includes('braille') ||
+            issue.title.toLowerCase().includes('contrast') ||
+            issue.title.toLowerCase().includes('lighting')) {
+          visionScore = Math.min(100, visionScore + 2)
+        }
+        if (issue.title.toLowerCase().includes('visual alarm') ||
+            issue.title.toLowerCase().includes('hearing loop')) {
+          hearingScore = Math.min(100, hearingScore + 2)
+        }
+        if (issue.title.toLowerCase().includes('signage') ||
+            issue.title.toLowerCase().includes('wayfinding')) {
+          cognitionScore = Math.min(100, cognitionScore + 2)
+        }
+      }
+      // Violations decrease scores
+      else if (issue.type === 'error') {
+        // Categorize violations
+        if (issue.title.toLowerCase().includes('door') ||
+            issue.title.toLowerCase().includes('ramp') ||
+            issue.title.toLowerCase().includes('handrail') ||
+            issue.title.toLowerCase().includes('wheelchair') ||
+            issue.title.toLowerCase().includes('step')) {
+          mobilityIssues++
+          mobilityScore = Math.max(0, mobilityScore - 8)
+        }
+        if (issue.title.toLowerCase().includes('lighting') ||
+            issue.title.toLowerCase().includes('contrast') ||
+            issue.title.toLowerCase().includes('visibility') ||
+            issue.title.toLowerCase().includes('braille')) {
+          visionIssues++
+          visionScore = Math.max(0, visionScore - 8)
+        }
+        if (issue.title.toLowerCase().includes('alarm') ||
+            issue.title.toLowerCase().includes('audio')) {
+          hearingIssues++
+          hearingScore = Math.max(0, hearingScore - 8)
+        }
+        if (issue.title.toLowerCase().includes('signage') ||
+            issue.title.toLowerCase().includes('wayfinding') ||
+            issue.title.toLowerCase().includes('confusing')) {
+          cognitionIssues++
+          cognitionScore = Math.max(0, cognitionScore - 8)
+        }
+      }
+      // Warnings have moderate impact
+      else if (issue.type === 'warning') {
+        if (issue.title.toLowerCase().includes('door') ||
+            issue.title.toLowerCase().includes('ramp') ||
+            issue.title.toLowerCase().includes('handrail')) {
+          mobilityScore = Math.max(0, mobilityScore - 3)
+        }
+        if (issue.title.toLowerCase().includes('lighting') ||
+            issue.title.toLowerCase().includes('contrast')) {
+          visionScore = Math.max(0, visionScore - 3)
+        }
+        if (issue.title.toLowerCase().includes('signage')) {
+          cognitionScore = Math.max(0, cognitionScore - 3)
+        }
+      }
+    })
+
+    // Apply confidence weighting - higher confidence issues have more impact
+    const avgConfidence = detectedIssues.reduce((sum, issue) => sum + issue.confidence, 0) / detectedIssues.length
+    const confidenceFactor = avgConfidence / 100
+
+    // Calculate weighted total score
+    const weights = {
+      mobility: 0.35,    // 35% weight - most critical for physical access
+      vision: 0.25,      // 25% weight
+      hearing: 0.15,     // 15% weight
+      cognition: 0.25    // 25% weight - important for navigation
+    }
+
+    const totalScore = Math.round(
+      (mobilityScore * weights.mobility +
+       visionScore * weights.vision +
+       hearingScore * weights.hearing +
+       cognitionScore * weights.cognition) * confidenceFactor
+    )
+
+    return {
+      mobility: Math.round(mobilityScore),
+      vision: Math.round(visionScore),
+      hearing: Math.round(hearingScore),
+      cognition: Math.round(cognitionScore),
+      total: Math.max(0, Math.min(100, totalScore))
+    }
+  }, [detectedIssues])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto px-4 py-8">
@@ -89,6 +216,125 @@ export default function DemoPage() {
                 onTimeUpdate={handleTimeUpdate}
                 onAnalysisUpdate={handleAnalysisUpdate}
               />
+            </div>
+
+            {/* Live Compliance Score Card */}
+            <div className="mt-6 bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-900">Live Compliance Score</h3>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-xs text-slate-600">Real-time Calculation</span>
+                </div>
+              </div>
+
+              {/* Total Score Display */}
+              <div className="text-center mb-6">
+                <div className={`text-5xl font-bold mb-2 ${
+                  complianceScores.total >= 85 ? 'text-green-600' :
+                  complianceScores.total >= 70 ? 'text-yellow-600' :
+                  complianceScores.total >= 55 ? 'text-orange-600' :
+                  'text-red-600'
+                }`}>
+                  {complianceScores.total}%
+                </div>
+                <div className="text-sm text-slate-600">Overall ADA Compliance</div>
+              </div>
+
+              {/* Category Scores */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-xs text-slate-500 mb-1">Mobility</div>
+                  <div className={`text-2xl font-bold ${
+                    complianceScores.mobility >= 80 ? 'text-green-600' :
+                    complianceScores.mobility >= 60 ? 'text-yellow-600' :
+                    'text-red-600'
+                  }`}>
+                    {complianceScores.mobility}%
+                  </div>
+                  <div className="mt-1 h-1 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        complianceScores.mobility >= 80 ? 'bg-green-500' :
+                        complianceScores.mobility >= 60 ? 'bg-yellow-500' :
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${complianceScores.mobility}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <div className="text-xs text-slate-500 mb-1">Vision</div>
+                  <div className={`text-2xl font-bold ${
+                    complianceScores.vision >= 80 ? 'text-green-600' :
+                    complianceScores.vision >= 60 ? 'text-yellow-600' :
+                    'text-red-600'
+                  }`}>
+                    {complianceScores.vision}%
+                  </div>
+                  <div className="mt-1 h-1 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        complianceScores.vision >= 80 ? 'bg-green-500' :
+                        complianceScores.vision >= 60 ? 'bg-yellow-500' :
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${complianceScores.vision}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <div className="text-xs text-slate-500 mb-1">Hearing</div>
+                  <div className={`text-2xl font-bold ${
+                    complianceScores.hearing >= 80 ? 'text-green-600' :
+                    complianceScores.hearing >= 60 ? 'text-yellow-600' :
+                    'text-red-600'
+                  }`}>
+                    {complianceScores.hearing}%
+                  </div>
+                  <div className="mt-1 h-1 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        complianceScores.hearing >= 80 ? 'bg-green-500' :
+                        complianceScores.hearing >= 60 ? 'bg-yellow-500' :
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${complianceScores.hearing}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <div className="text-xs text-slate-500 mb-1">Cognition</div>
+                  <div className={`text-2xl font-bold ${
+                    complianceScores.cognition >= 80 ? 'text-green-600' :
+                    complianceScores.cognition >= 60 ? 'text-yellow-600' :
+                    'text-red-600'
+                  }`}>
+                    {complianceScores.cognition}%
+                  </div>
+                  <div className="mt-1 h-1 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        complianceScores.cognition >= 80 ? 'bg-green-500' :
+                        complianceScores.cognition >= 60 ? 'bg-yellow-500' :
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${complianceScores.cognition}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Score Explanation */}
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs text-blue-800">
+                  <strong>Live Calculation:</strong> Scores update in real-time based on detected features and violations.
+                  Higher scores indicate better ADA compliance.
+                </p>
+              </div>
             </div>
 
             {/* Compliance Status Dashboard */}
