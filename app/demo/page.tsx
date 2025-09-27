@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { VideoPlayerWithAnalysis } from '@/components/VideoPlayerWithAnalysis'
 
@@ -27,16 +27,9 @@ interface ComplianceScores {
   total: number
 }
 
-export default function DemoPage() {
+function DemoContent() {
   const searchParams = useSearchParams()
   const [detectedIssues, setDetectedIssues] = useState<Issue[]>([])
-  const [showUpload, setShowUpload] = useState(false)
-
-  const videoOptions = [
-    { value: '/video/enter_building.mp4', label: 'Building Entrance', key: 'default' },
-    { value: '/video/sample_1.mp4', label: 'Sample Video 1', key: 'sample_1' },
-    { value: '/video/sample_2.mp4', label: 'Sample Video 2', key: 'sample_2' }
-  ]
 
   // Get video from URL parameter or default
   const videoParam = searchParams.get('video')
@@ -68,10 +61,6 @@ export default function DemoPage() {
     console.log('Current time:', time)
   }
 
-  const handleVideoChange = (videoPath: string) => {
-    setSelectedVideo(videoPath)
-    setDetectedIssues([]) // Clear previous issues
-  }
 
   // Calculate real-time compliance scores based on detected issues
   const complianceScores = useMemo((): ComplianceScores => {
@@ -85,17 +74,9 @@ export default function DemoPage() {
     let hearingScore = 100
     let cognitionScore = 100
 
-    // Count issues by category and type
-    let mobilityIssues = 0
-    let visionIssues = 0
-    let hearingIssues = 0
-    let cognitionIssues = 0
-    let positiveFeatures = 0
-
     detectedIssues.forEach(issue => {
       // Positive features increase scores
       if (issue.type === 'success') {
-        positiveFeatures++
 
         // Boost relevant category based on feature type
         if (issue.title.toLowerCase().includes('handrail') ||
@@ -125,25 +106,21 @@ export default function DemoPage() {
             issue.title.toLowerCase().includes('handrail') ||
             issue.title.toLowerCase().includes('wheelchair') ||
             issue.title.toLowerCase().includes('step')) {
-          mobilityIssues++
           mobilityScore = Math.max(0, mobilityScore - 8)
         }
         if (issue.title.toLowerCase().includes('lighting') ||
             issue.title.toLowerCase().includes('contrast') ||
             issue.title.toLowerCase().includes('visibility') ||
             issue.title.toLowerCase().includes('braille')) {
-          visionIssues++
           visionScore = Math.max(0, visionScore - 8)
         }
         if (issue.title.toLowerCase().includes('alarm') ||
             issue.title.toLowerCase().includes('audio')) {
-          hearingIssues++
           hearingScore = Math.max(0, hearingScore - 8)
         }
         if (issue.title.toLowerCase().includes('signage') ||
             issue.title.toLowerCase().includes('wayfinding') ||
             issue.title.toLowerCase().includes('confusing')) {
-          cognitionIssues++
           cognitionScore = Math.max(0, cognitionScore - 8)
         }
       }
@@ -591,5 +568,20 @@ export default function DemoPage() {
         }
       `}</style>
     </div>
+  )
+}
+
+export default function DemoPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-slate-200 rounded-full mx-auto mb-4 animate-pulse" />
+          <p className="text-slate-600">Loading demo...</p>
+        </div>
+      </div>
+    }>
+      <DemoContent />
+    </Suspense>
   )
 }
