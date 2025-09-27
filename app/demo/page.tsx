@@ -20,6 +20,14 @@ interface Issue {
 
 export default function DemoPage() {
   const [detectedIssues, setDetectedIssues] = useState<Issue[]>([])
+  const [selectedVideo, setSelectedVideo] = useState('/video/enter_building.mp4')
+  const [showUpload, setShowUpload] = useState(false)
+
+  const videoOptions = [
+    { value: '/video/enter_building.mp4', label: 'Building Entrance' },
+    { value: '/video/sample_1.mp4', label: 'Sample Video 1' },
+    { value: '/video/sample_2.mp4', label: 'Sample Video 2' }
+  ]
 
   const handleAnalysisUpdate = (newIssues: Issue[]) => {
     setDetectedIssues(prev => {
@@ -32,6 +40,11 @@ export default function DemoPage() {
   const handleTimeUpdate = (time: number) => {
     // Time update handled by VideoPlayerWithAnalysis
     console.log('Current time:', time)
+  }
+
+  const handleVideoChange = (videoPath: string) => {
+    setSelectedVideo(videoPath)
+    setDetectedIssues([]) // Clear previous issues
   }
 
   return (
@@ -51,29 +64,60 @@ export default function DemoPage() {
           {/* Main Content - Full Width on Mobile, 2/3 on Desktop */}
           <div className="lg:col-span-2">
 
+            {/* Video Selection Controls */}
+            <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900">Select Video Source</h3>
+                <div className="flex gap-2">
+                  {videoOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => handleVideoChange(option.value)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        selectedVideo === option.value
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => window.location.href = '/demo/upload'}
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    Upload Video
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Video Player */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <VideoPlayerWithAnalysis
-                src="/video/enter_building.mp4"
+                key={selectedVideo} // Force remount on video change
+                src={selectedVideo}
                 onTimeUpdate={handleTimeUpdate}
                 onAnalysisUpdate={handleAnalysisUpdate}
               />
             </div>
 
-            {/* Key Features */}
+            {/* Compliance Status Dashboard */}
             <div className="mt-6 grid md:grid-cols-3 gap-4">
               <div className="bg-white rounded-lg p-4 shadow">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                     <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-slate-900">Real-Time Detection</h3>
+                  <h3 className="font-semibold text-slate-900">Compliant Features</h3>
                 </div>
                 <p className="text-sm text-slate-600">
-                  AWS Rekognition analyzes 50+ objects per frame with enhanced AI detection
+                  {detectedIssues.filter(i => i.type === 'success').length} accessibility features detected
                 </p>
               </div>
 
@@ -84,24 +128,24 @@ export default function DemoPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-slate-900">ADA Violations</h3>
+                  <h3 className="font-semibold text-slate-900">Areas to Review</h3>
                 </div>
                 <p className="text-sm text-slate-600">
-                  Detects 30+ types of ADA violations including furniture, lighting, barriers
+                  {detectedIssues.filter(i => i.type === 'warning').length} potential improvements identified
                 </p>
               </div>
 
               <div className="bg-white rounded-lg p-4 shadow">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-slate-900">Policy Citations</h3>
+                  <h3 className="font-semibold text-slate-900">Violations Found</h3>
                 </div>
                 <p className="text-sm text-slate-600">
-                  Each issue includes specific ADA policy references
+                  {detectedIssues.filter(i => i.type === 'error').length} ADA violations requiring attention
                 </p>
               </div>
             </div>

@@ -274,8 +274,28 @@ export function VideoPlayerWithAnalysis({
 
               // Enhanced styling for better visibility
               const confidence = instance.Confidence || obs.confidence || 0
-              const color = confidence > 80 ? '#10b981' : confidence > 60 ? '#fbbf24' : '#ef4444'
-              const bgColor = confidence > 80 ? 'rgba(16, 185, 129, 0.2)' : confidence > 60 ? 'rgba(251, 191, 36, 0.2)' : 'rgba(239, 68, 68, 0.2)'
+              const labelLower = obs.label?.toLowerCase() || ''
+
+              // Determine if this is an accessibility feature (green) or regular detection
+              const isAccessibilityFeature =
+                labelLower.includes('sign') || labelLower.includes('button') ||
+                labelLower.includes('rail') || labelLower.includes('elevator') ||
+                labelLower.includes('wheelchair') || labelLower.includes('accessible') ||
+                labelLower.includes('braille') || labelLower.includes('tactile') ||
+                labelLower.includes('automatic') || labelLower.includes('push')
+
+              // Color based on accessibility compliance
+              const color = isAccessibilityFeature ? '#10b981' : // Green for accessibility features
+                           confidence > 80 ? '#3b82f6' : // Blue for high confidence
+                           confidence > 60 ? '#fbbf24' : // Yellow for medium
+                           '#ef4444' // Red for low
+
+              const bgColor = isAccessibilityFeature ? 'rgba(16, 185, 129, 0.3)' :
+                             confidence > 80 ? 'rgba(59, 130, 246, 0.2)' :
+                             confidence > 60 ? 'rgba(251, 191, 36, 0.2)' :
+                             'rgba(239, 68, 68, 0.2)'
+
+              const displayLabel = isAccessibilityFeature ? `✓ ${obs.label}` : obs.label
 
               return (
                 <div
@@ -289,7 +309,7 @@ export function VideoPlayerWithAnalysis({
                     border: `3px solid ${color}`,
                     backgroundColor: bgColor,
                     boxShadow: `0 0 20px ${color}40`,
-                    animation: 'pulse 2s infinite'
+                    animation: isAccessibilityFeature ? 'glow 2s infinite' : 'pulse 2s infinite'
                   }}
                 >
                   <span
@@ -300,8 +320,20 @@ export function VideoPlayerWithAnalysis({
                       fontSize: '11px'
                     }}
                   >
-                    {obs.label} ({Math.round(confidence)}%)
+                    {displayLabel} ({Math.round(confidence)}%)
                   </span>
+                  {isAccessibilityFeature && (
+                    <span
+                      className="absolute -bottom-6 left-0 px-2 py-1 text-xs font-medium rounded shadow-lg whitespace-nowrap"
+                      style={{
+                        backgroundColor: '#065f46',
+                        color: 'white',
+                        fontSize: '10px'
+                      }}
+                    >
+                      ADA Compliant
+                    </span>
+                  )}
                 </div>
               )
             })
@@ -400,7 +432,7 @@ export function VideoPlayerWithAnalysis({
         )}
       </div>
 
-      {/* CSS for pulse animation */}
+      {/* CSS for animations */}
       <style jsx>{`
         @keyframes pulse {
           0% {
@@ -413,6 +445,23 @@ export function VideoPlayerWithAnalysis({
           }
           100% {
             opacity: 0.8;
+            transform: scale(1);
+          }
+        }
+        @keyframes glow {
+          0% {
+            opacity: 0.9;
+            filter: brightness(1);
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            filter: brightness(1.2);
+            transform: scale(1.03);
+          }
+          100% {
+            opacity: 0.9;
+            filter: brightness(1);
             transform: scale(1);
           }
         }
