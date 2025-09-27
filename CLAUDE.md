@@ -4,32 +4,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an accessibility-focused Next.js 15 application called "Accessibilify" that demonstrates modern app switcher experiences with video analysis capabilities. It uses React 19, TypeScript, Tailwind CSS v4, and React Aria for accessible UI components.
+Accessibilify is an ADA compliance monitoring system built with Next.js 15 that analyzes building videos to detect accessibility violations using AWS Rekognition AI. It provides real-time compliance scoring and stores analytics data in Snowflake for enterprise reporting.
+
+**Tech Stack**: Next.js 15.5.4, React 19, TypeScript, Tailwind CSS v4, React Aria, AWS SDK (Rekognition/S3), Snowflake SDK
 
 ## Development Commands
 
 ```bash
-# Start development server
-npm run dev
+# Development
+npm run dev              # Start development server
+npm run build            # Build for production
+npm start                # Start production server
+npm run lint             # Run ESLint
 
-# Build for production
-npm run build
+# Snowflake Database
+npm run snowflake:init      # Initialize database tables
+npm run snowflake:populate  # Populate demo data
+npm run snowflake:test      # Test connection
 
-# Start production server
-npm start
-
-# Run linting
-npm run lint
-
-# Type checking (no dedicated script, use directly)
-npx tsc --noEmit
+# Type Checking
+npx tsc --noEmit         # TypeScript type checking
 ```
 
 ## Architecture
 
+### API Routes
+- `/api/analyze-video`: Frame-by-frame AWS Rekognition analysis, handles bulk uploads and job status
+- `/api/snowflake/analysis`: Query and store ADA compliance analysis data
+- `/api/snowflake/dashboard`: Retrieve dashboard metrics and analytics
+
 ### Core Context Providers
 - **VideoProvider** (`components/VideoContext.tsx`): Manages video playback state, seeking, and alert selection across the app
-- **AudioProvider** (`components/AudioProvider.tsx`): Handles audio playback with useReducer pattern for complex state management
+- **AudioProvider** (`components/AudioProvider.tsx`): Simplified stub provider (audio functionality not currently implemented)
 
 ### Component Communication Pattern
 The app uses a "Connected" component pattern where:
@@ -37,11 +43,17 @@ The app uses a "Connected" component pattern where:
 - Components communicate through context rather than props for cross-component interactions
 - Time synchronization between video player and accessibility analysis is handled via context
 
-### Key Features
-- Video player with accessibility analysis integration
-- Audio player with playback controls (play/pause, rewind, forward, speed control)
-- Real-time synchronization between video timestamps and accessibility alerts
-- Responsive layout with sidebar navigation
+### Data Flow
+1. Videos uploaded to S3 → AWS Rekognition analyzes frames
+2. Detection results include 30+ ADA violation types with confidence scores
+3. Analysis data stored in Snowflake for compliance reporting
+4. Real-time UI updates show bounding boxes and accessibility alerts
+
+## Environment Variables
+
+Required in `.env.local` (see `.env.local.example`):
+- AWS credentials and S3 bucket configuration
+- Snowflake connection parameters (account, warehouse, database)
 
 ## Code Style Requirements
 

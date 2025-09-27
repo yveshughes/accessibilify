@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-// Temporarily use mock storage while Snowflake connection is being resolved
 import { mockStoreAnalysis, getMockAnalysis } from '@/lib/snowflake-mock'
 import { v4 as uuidv4 } from 'uuid'
 
-// Comment out Snowflake imports temporarily
-// import {
-//   storeAnalysis,
-//   storeMarkers,
-//   storeRecommendations,
-//   getAnalysisSummary,
-//   AnalysisData,
-//   MarkerData,
-//   RecommendationData
-// } from '@/lib/snowflake'
+// Try to use real Snowflake, fallback to mock if it fails
+let useRealSnowflake = true
+import {
+  storeAnalysis,
+  storeMarkers,
+  storeRecommendations,
+  getAnalysisSummary,
+  AnalysisData,
+  MarkerData,
+  RecommendationData
+} from '@/lib/snowflake'
 
 // Store analysis results
 export async function POST(request: NextRequest) {

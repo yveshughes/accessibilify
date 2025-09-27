@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "snowflake:init": "node scripts/init-snowflake.js",
+    "snowflake:populate": "node scripts/populate-demo-data.js",
+    "snowflake:test": "node scripts/test-simple.js"
   },
   "dependencies": {
     "@aws-sdk/client-rekognition": "^3.896.0",
