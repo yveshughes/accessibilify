@@ -82,6 +82,17 @@ export default function RootLayout({
                   </svg>
                 </Link>
 
+                <Link
+                  href="/about"
+                  className="group flex h-10 w-10 items-center justify-center rounded-lg bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all"
+                  aria-label="About"
+                  title="About"
+                >
+                  <svg className="h-5 w-5 text-slate-600 group-hover:text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </Link>
+
                 <div className="h-px w-8 bg-slate-200 my-2" />
 
                 <Link
