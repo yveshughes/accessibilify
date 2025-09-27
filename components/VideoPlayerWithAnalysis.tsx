@@ -94,9 +94,10 @@ export function VideoPlayerWithAnalysis({
         }
         if (data.observations && data.observations.length > 0) {
           // Show all observations with enhanced visibility
+          console.log('Received observations:', data.observations)
           setCurrentObservations(data.observations)
-          // Keep observations visible for 1.5 seconds
-          setTimeout(() => setCurrentObservations([]), 1500)
+          // Keep observations visible for 2.5 seconds for better visibility
+          setTimeout(() => setCurrentObservations([]), 2500)
         }
       }
     } catch (error) {
@@ -248,10 +249,10 @@ export function VideoPlayerWithAnalysis({
   }
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full overflow-hidden rounded-lg">
       <video
         ref={videoRef}
-        className="w-full h-full object-cover rounded-lg"
+        className="w-full h-full object-cover"
         src={src}
         autoPlay
         loop
@@ -263,40 +264,50 @@ export function VideoPlayerWithAnalysis({
         className="hidden"
       />
 
-      {/* Bounding box overlays */}
-      {showOverlays && currentObservations.map((obs, idx) => (
-        <div key={`${obs.label}-${idx}`} className="absolute inset-0 pointer-events-none">
-          {obs.instances.map((instance, instIdx) => {
-            const box = instance.BoundingBox
-            if (!box) return null
+      {/* Bounding box overlays - positioned absolutely over the video */}
+      {showOverlays && currentObservations.length > 0 && (
+        <div className="absolute inset-0 pointer-events-none">
+          {currentObservations.map((obs, idx) => (
+            obs.instances && obs.instances.map((instance, instIdx) => {
+              const box = instance.BoundingBox
+              if (!box || !box.Width || !box.Height) return null
 
-            return (
-              <div
-                key={`${obs.label}-${instIdx}`}
-                className="absolute border-2 bg-opacity-20 animate-pulse"
-                style={{
-                  left: `${(box.Left || 0) * 100}%`,
-                  top: `${(box.Top || 0) * 100}%`,
-                  width: `${(box.Width || 0) * 100}%`,
-                  height: `${(box.Height || 0) * 100}%`,
-                  borderColor: obs.confidence > 80 ? '#10b981' : obs.confidence > 60 ? '#eab308' : '#ef4444',
-                  backgroundColor: obs.confidence > 80 ? 'rgba(16, 185, 129, 0.1)' : obs.confidence > 60 ? 'rgba(234, 179, 8, 0.1)' : 'rgba(239, 68, 68, 0.1)'
-                }}
-              >
-                <span
-                  className="absolute -top-6 left-0 px-1.5 py-0.5 text-xs font-bold rounded shadow-lg"
+              // Enhanced styling for better visibility
+              const confidence = instance.Confidence || obs.confidence || 0
+              const color = confidence > 80 ? '#10b981' : confidence > 60 ? '#fbbf24' : '#ef4444'
+              const bgColor = confidence > 80 ? 'rgba(16, 185, 129, 0.2)' : confidence > 60 ? 'rgba(251, 191, 36, 0.2)' : 'rgba(239, 68, 68, 0.2)'
+
+              return (
+                <div
+                  key={`${obs.label}-${idx}-${instIdx}`}
+                  className="absolute"
                   style={{
-                    backgroundColor: obs.confidence > 80 ? '#10b981' : obs.confidence > 60 ? '#eab308' : '#ef4444',
-                    color: 'white'
+                    left: `${(box.Left || 0) * 100}%`,
+                    top: `${(box.Top || 0) * 100}%`,
+                    width: `${(box.Width || 0) * 100}%`,
+                    height: `${(box.Height || 0) * 100}%`,
+                    border: `3px solid ${color}`,
+                    backgroundColor: bgColor,
+                    boxShadow: `0 0 20px ${color}40`,
+                    animation: 'pulse 2s infinite'
                   }}
                 >
-                  {obs.label} ({Math.round(instance.Confidence || obs.confidence || 0)}%)
-                </span>
-              </div>
-            )
-          })}
+                  <span
+                    className="absolute -top-7 left-0 px-2 py-1 text-xs font-bold rounded shadow-lg whitespace-nowrap"
+                    style={{
+                      backgroundColor: color,
+                      color: 'white',
+                      fontSize: '11px'
+                    }}
+                  >
+                    {obs.label} ({Math.round(confidence)}%)
+                  </span>
+                </div>
+              )
+            })
+          ))}
         </div>
-      ))}
+      )}
 
       {/* Analysis indicator and overlay toggle */}
       <div className="absolute top-2 right-2 flex items-center gap-2">
@@ -388,6 +399,24 @@ export function VideoPlayerWithAnalysis({
           </div>
         )}
       </div>
+
+      {/* CSS for pulse animation */}
+      <style jsx>{`
+        @keyframes pulse {
+          0% {
+            opacity: 0.8;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.02);
+          }
+          100% {
+            opacity: 0.8;
+            transform: scale(1);
+          }
+        }
+      `}</style>
     </div>
   )
 }

@@ -43,13 +43,32 @@ export async function POST(request: NextRequest) {
           Bytes: imageBuffer
         },
         MaxLabels: 50,  // Increased from 20 to capture more objects
-        MinConfidence: 40,  // Lowered from 60 to detect more items
-        Features: ['GENERAL_LABELS']
+        MinConfidence: 30,  // Lowered to detect more items with bounding boxes
+        Settings: {
+          GeneralLabels: {
+            LabelInclusionFilters: [],
+            LabelExclusionFilters: [],
+            LabelCategoryInclusionFilters: [],
+            LabelCategoryExclusionFilters: [],
+            MaxDominantColors: 0,
+            BoundingBoxFilter: {
+              MinBoundingBoxHeight: 0.01,  // Include smaller objects
+              MinBoundingBoxWidth: 0.01    // Include smaller objects
+            }
+          }
+        }
       })
     )
 
     // Process labels for accessibility issues
     const analysis = analyzeAccessibilityIssues(detectLabelsResponse.Labels || [], timestamp)
+
+    // Log for debugging
+    console.log(`Frame analysis at ${timestamp}s:`, {
+      labelsFound: detectLabelsResponse.Labels?.length || 0,
+      withBoundingBoxes: detectLabelsResponse.Labels?.filter(l => l.Instances && l.Instances.length > 0).length || 0,
+      observationsCreated: analysis.observations.length
+    })
 
     return NextResponse.json({
       success: true,
