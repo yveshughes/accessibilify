@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 
 interface AnalysisData {
@@ -48,7 +48,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState(new Date())
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       // Fetch from Snowflake API
       const response = await fetch('/api/snowflake/dashboard')
@@ -57,7 +57,12 @@ export default function DashboardPage() {
         setAnalyses(data.analyses || [])
         setViolations(data.violations || [])
         setRecommendations(data.recommendations || [])
-        setStats(data.stats || stats)
+        setStats(data.stats || {
+          totalBuildings: 0,
+          totalViolations: 0,
+          avgCompliance: 0,
+          highPriorityFixes: 0
+        })
         setLastRefresh(new Date())
       }
     } catch (error) {
@@ -65,14 +70,14 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchDashboardData()
     // Refresh every 30 seconds
     const interval = setInterval(fetchDashboardData, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [fetchDashboardData])
 
   const getComplianceColor = (score: number) => {
     if (score >= 85) return 'text-green-600'

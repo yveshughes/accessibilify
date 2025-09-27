@@ -29,7 +29,7 @@ export const getConnection = () => {
 }
 
 // Execute query helper
-export const executeQuery = async (query: string, binds?: any[]): Promise<any[]> => {
+export const executeQuery = async (query: string, binds?: (string | number)[]): Promise<Record<string, unknown>[]> => {
   const connection = await getConnection()
 
   return new Promise((resolve, reject) => {

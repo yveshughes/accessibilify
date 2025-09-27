@@ -1,15 +1,49 @@
 // Mock Snowflake implementation for development/testing
 // This will store data in memory temporarily until Snowflake connection is resolved
 
+interface AnalysisData {
+  videoId?: string
+  title?: string
+  duration?: number
+  scores?: {
+    mobility?: number
+    vision?: number
+    hearing?: number
+    cognition?: number
+    total?: number
+  }
+  issues?: Array<{
+    type: string
+    title?: string
+    description?: string
+  }>
+  markers?: Array<{
+    type: string
+    timestamp?: number
+    tsStartMs?: number
+    tsEndMs?: number
+    confidence?: number
+    boundingBox?: {
+      Left?: number
+      Top?: number
+      Width?: number
+      Height?: number
+    }
+    text?: string
+    notes?: string
+    description?: string
+  }>
+}
+
 interface StoredAnalysis {
   analysisId: string
-  data: any
+  data: AnalysisData
   timestamp: Date
 }
 
 const mockStorage: StoredAnalysis[] = []
 
-export const mockStoreAnalysis = async (data: any) => {
+export const mockStoreAnalysis = async (data: AnalysisData) => {
   const analysisId = Math.random().toString(36).substring(7)
 
   mockStorage.push({
