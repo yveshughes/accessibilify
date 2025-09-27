@@ -8,6 +8,7 @@ import { AudioPlayer } from '@/components/player/AudioPlayer'
 import { Waveform } from '@/components/Waveform'
 import { VideoProvider } from '@/components/VideoContext'
 import { ConnectedVideo } from '@/components/ConnectedVideo'
+import { SidebarSection } from '@/components/SidebarSection'
 import './globals.css'
 
 const geistMono = Geist_Mono({
@@ -123,39 +124,7 @@ export default function RootLayout({
                   </h1>
                 </div>
                 <ConnectedVideo />
-              <section className="mt-10 lg:mt-12">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-slate-900">
-                  Sponsors
-                </h2>
-                <ul
-                  role="list"
-                  className="mt-4 flex justify-center gap-10 text-base font-medium text-slate-700 sm:gap-8 lg:flex-col lg:gap-4"
-                >
-                  {(
-                    [
-                      ['Snowflake', 'https://www.snowflake.com'],
-                      ['Writer', 'https://writer.com'],
-                      ['AWS', 'https://aws.amazon.com'],
-                      ['Llama', 'https://llama.com'],
-                      ['LandingAI', 'https://landing.ai'],
-                      ['CrewAI', 'https://www.crewai.com'],
-                      ['Glean', 'https://www.glean.com'],
-                    ] as const
-                  ).map(([sponsor, url]) => (
-                    <li key={sponsor} className="flex">
-                      <Link
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-center text-slate-600 hover:text-slate-900"
-                        aria-label={`Visit ${sponsor} website`}
-                      >
-                        <span className="hidden sm:block">{sponsor}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+                <SidebarSection />
             </div>
           </header>
           <main className="border-t border-slate-200 lg:relative lg:mb-28 lg:ml-112 lg:border-t-0 xl:ml-120">
